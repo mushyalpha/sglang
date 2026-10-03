@@ -711,6 +711,24 @@ def build_grammar_vocab_mask(
     return GrammarMask(grammar, vocab_mask)
 
 
+def check_token_map_compatible_with_lm_head(target_lm_head: Any) -> None:
+    """Reject a speculative token map when the target lm_head is vocab-sharded.
+
+    The token map holds global vocab ids, but a vocab-parallel lm_head only holds
+    ``vocab_size / tp_size`` rows per rank, so indexing it with global ids is out
+    of bounds (or selects the wrong rows). Fail fast with a clear message rather
+    than a device-side assert.
+    """
+    lm_head_tp_size = getattr(target_lm_head, "tp_size", 1)
+    if lm_head_tp_size > 1:
+        raise ValueError(
+            "--speculative-token-map is not supported when the target lm_head is "
+            f"vocab-sharded across {lm_head_tp_size} tensor-parallel ranks "
+            "(e.g. --tp-size > 1). Please remove --speculative-token-map or use "
+            "tp_size 1."
+        )
+
+
 def load_token_map(token_map_path: str) -> List[int]:
     if not os.path.exists(token_map_path):
         repo_id = os.path.dirname(token_map_path)

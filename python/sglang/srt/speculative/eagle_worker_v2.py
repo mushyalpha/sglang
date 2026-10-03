@@ -105,6 +105,7 @@ from sglang.srt.speculative.pp_draft_embedding import resolve_draft_embed_and_he
 from sglang.srt.speculative.spec_info import SpeculativeAlgorithm
 from sglang.srt.speculative.spec_utils import (
     draft_pp_context,
+    check_token_map_compatible_with_lm_head,
     draft_tp_context,
     fast_sample,
     get_plan_stream,
@@ -344,6 +345,7 @@ class EagleDraftWorker(EagleDraftWorkerBase):
 
         else:
             if self.hot_token_id is not None and head is not None:
+                check_token_map_compatible_with_lm_head(target_lm_head)
                 head = head.clone()
                 self.hot_token_id = self.hot_token_id.to(head.device)
                 head.data = head.data[self.hot_token_id]
